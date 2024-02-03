@@ -54,7 +54,7 @@ H = (Zmax - Zmin) * 10 ** 6
 Z = (Zmax - Zmin) / 2
 
 # [m] Waist radius PARÁMETRO MUY IMPORTANTE
-wo = 0.6 * (10 ** (-1))
+wo = 0.3 * (10 ** (-3))
 
 # [m] Distancia Rayleigh
 Zr = (np.pi * (wo ** 2)) / lam
@@ -68,6 +68,7 @@ n = 4
 # Cálculo de Io suponiéndola constante para r = rf y w ~ wo
 o = 2 / n
 p = 2 * ((ro / w) ** n)
+
 gamma_incompleta = np.vectorize(mpmath.gammainc)(o, p)
 gamma_value = gamma(2 / n)
 
@@ -273,7 +274,11 @@ Z = Zf - (rp / np.tan(alfa))
 
 w = wo * np.sqrt(1 + (Z / Zr) ** 2)
 
-Io = (P * n) / (np.pi * (w ** 2) * (2 ** (1 - (2 / n))) * gamma_value)
+p = 2 * ((rp / w) ** n)
+
+gamma_incompleta = np.vectorize(mpmath.gammainc)(o, p)
+
+Io = (P * n) / (np.pi * (w ** 2) * (2 ** (1 - (2 / n))) * (gamma_value - gamma_incompleta))
 
 # Define la función a integrar
 f = lambda r: (Io / P) * np.exp(- 2 * ((r / w) ** n)) * 2 * np.pi * r
@@ -287,13 +292,8 @@ f_real = integrate.quad(f, a, b)
 
 # -------------Cálculo integral mediante Simpson-----------------------#
 
-# Primero se define la función a integrar
-def f(r):
-    return (Io / P) * np.exp(- 2 * ((r / w) ** n)) * 2 * np.pi * r
-
-
 # Método de Simpson
-def simpson_integration(a, b, numray):
+def simpson_integration(a, b, numray, f):
     h = (b - a) / (numray - 1)
 
     x_values = np.linspace(a, b, numray)
@@ -302,16 +302,20 @@ def simpson_integration(a, b, numray):
     integral = h / 3 * (y_values[0] + 4 * np.sum(y_values[1:-1:2]) + 2 * np.sum(y_values[2:-2:2]) + y_values[-1])
 
     return integral
+# a límite inferior de la integral, b el superior, numray el número de nodos y f la función a integrar
 
 
 # Calcular la integral utilizando la regla de Simpson
-Q_sum = simpson_integration(a, b, numray)
+Q_sum = simpson_integration(a, b, numray, f)
 
 Error = (np.abs(f_real[0] - Q_sum) / f_real[0]) * 100
 
 print("El valor de la integral entre", a, "y", b, "por Simpson es: ", Q_sum)
 print("El valor de la integral real entre", a, "y", b, "es: ", f_real[0])
 print("El error de aproximación es: ", Error, "%")
+
+# --------Cálculo de delta para obtener rayos monoenergéticos-------#
+
 
 #############################################################
 # Gráfica del valor de las diferencias de gamma
@@ -320,7 +324,7 @@ print("El error de aproximación es: ", Error, "%")
 n_values = np.arange(2, 13, 2)
 
 # Rango de valores para r
-r_values = np.linspace(wo, ro, 600)  # el valor mínimo es el waist radius y el máx ro
+r_values = np.linspace(wo, Rb, 600)  # el valor mínimo es el waist radius y el máx ro
 
 # Configurar el gráfico
 plt.figure(figsize=(8, 5))
@@ -352,12 +356,13 @@ plt.show()
 # Valor de Io para w = wo porque para el rango de valores de Z w ~ wo
 
 gamma_grafn = np.zeros((1, 600))
-r_values = np.linspace(wo, ro, 600)  # Valores de Io entre wo y rf
+r_values = np.linspace(0, rf, 600)  # Valores de Io entre wo y rf
 
 # Distintos valores de la diferencia de gammas en función de r
+o = 2 / n
+
 for i in range(len(r_values)):
     j = r_values[i]
-    o = 2 / n
     if j < wo:
         p = 2 * ((wo / w) ** n)
     elif j >= wo:
@@ -367,7 +372,7 @@ for i in range(len(r_values)):
 # Valores de Io para distintos r
 Int_grafn = (P * n) / ((2 ** (1 - (2 / n))) * np.pi * (w ** 2) * gamma_grafn)
 
-print("Diferencia entre el mínimo y el máximo valor de Io", (Int_grafn[0, 0] - Int_grafn[0, 199]) * (10 ** -13))
+print("Diferencia entre el mínimo y el máximo valor de Io", (Int_grafn[0, 0] - Int_grafn[0, 599]) * (10 ** -13))
 
 # Se guarda fichero txt
 np.savetxt('Io.txt', Int_grafn, header='Matriz de vectores', delimiter='\t', fmt='%f', comments='')
@@ -384,7 +389,7 @@ plt.ylabel('$\mathbf{I_0}$ (GW/cm$^2$)', fontweight='bold', fontsize=12)
 # Ajusta la resolución (dpi) para mejorar la calidad al hacer zoom en la imagen descargada
 plt.savefig('Valor de I0.png', dpi=1000)
 
-plt.xlim([0, ro])
+plt.xlim([0, rf])
 plt.plot(r_values, Int_grafn.flatten() * (10 ** -13))
 
 plt.show()
