@@ -16,22 +16,22 @@ def simpson_integration(a, b, particiones, f):
 
 # --------Cálculo de deltas para obtener rayos monoenergéticos-------#
 
-seminumray = 1000  # Número de rayos desde "a" a "b" (en total serían 2 * numray)
+seminumray = 2000  # Número de rayos desde "a" a "b"
 liminf = 0  # Límite inferior de integración
 limsup = 2  # Límite superior de integración
 sigma = 2
-valueexp = 4  # Valor del exponente
-Io = 10000 / 6  # Valor de la intensidad cuando r = 0
+valueexp = 2  # Valor del exponente
+Io = 1.e+5  # Valor de la intensidad cuando r = 0
 coef = Io * 2 * np.pi
-trozos = 600  # Particiones en el método de Simpson
-
+trozos = 1000  # Particiones en el método de Simpson
+err = 1.e-7  # Margen de error
 func = lambda r: coef * r * (np.exp(-((r / sigma) ** valueexp)))  # Función a integrar
 
 totalenergy = simpson_integration(liminf, limsup, trozos, func)  # Energía de la sección de estudio
 
 print("La energía del láser en un intervalo t es: ", totalenergy)
 
-rayenergy = totalenergy / (seminumray * 2)  # Energía de cada rayo
+rayenergy = totalenergy / seminumray  # Energía de cada rayo
 
 print("La energía de cada rayo es: ", rayenergy)
 
@@ -43,14 +43,11 @@ func_g = np.zeros(seminumray)  # Vector diferencia de energías
 for i in range(seminumray):
     radprueba = rad[i] + limsup / 20
     func_g[i] = np.abs(simpson_integration(rad[i], radprueba, trozos, func) - rayenergy)
-    if func_g[i] < 10 ** (-6) and radprueba <= limsup:
-        rad[i + 1] = radprueba
-    else:
-        while func_g[i] >= 10 ** (-6) and radprueba <= limsup:
-            radprueba = radprueba - (simpson_integration(rad[i], radprueba, trozos, func) - rayenergy) / func(radprueba)
+    while func_g[i] >= err:
+        radprueba = radprueba - (simpson_integration(rad[i], radprueba, trozos, func) - rayenergy) / func(radprueba)
+        func_g[i] = np.abs(simpson_integration(rad[i], radprueba, trozos, func) - rayenergy)
 
-            func_g[i] = np.abs(simpson_integration(rad[i], radprueba, trozos, func) - rayenergy)
-
+    if radprueba <= limsup:
         rad[i + 1] = radprueba
 
 print("Los radios desde 'a' hasta 'b' son: ", rad)
@@ -65,7 +62,7 @@ Fb = Rs / np.tan(alfa)  # Distancia de la sección de estudio al foco
 Fl = Rl / np.tan(alfa)  # Distancia del lente al foco
 H = Fl - Fb  # Distancia entre lente y la sección de estudio
 
-numray = seminumray * 2  # Cantidad total de rayos
+numray = seminumray * 2  # Cantidad total de "r"
 
 hrays = np.zeros(numray)  # Distancias entre cada r_j
 posicionvect = np.zeros(numray)  # Posición vertical de cada rayo
@@ -106,7 +103,7 @@ ax.set_ylim([-Rs - Rs / 20, Rs + Rs / 20])  # Límites del eje Y (eje del radio 
 ax.axhline(0, color='black', linewidth=0.5)
 ax.axvline(0, color='black', linewidth=0.5)
 ax.grid(color='gray', linestyle='--', linewidth=0.5)
-ax.set_title(r'$\mathbf{Rayos \ monoenergéticos. \ Para \ ' + str(numray) + '\ rayos}$', fontsize=14,
+ax.set_title(r'$\mathbf{Rayos \ monoenergéticos. \ Para \ ' + str(seminumray) + '\ rayos}$', fontsize=14,
              fontweight='bold')
 
 # Agregar títulos a los ejes x e y
@@ -141,5 +138,26 @@ plt.grid(True)
 
 # Ajusta la resolución (dpi) para mejorar la calidad al hacer zoom en la imagen descargada
 plt.savefig('Gráfica a integrar rayos monoenergéticos.png', dpi=2000)
+
+plt.show()
+
+# ----------------------- Gráfica de energías de cada rayo -----------------------#
+energiasderayos = np.zeros(seminumray)
+for i in range(seminumray):
+    energiasderayos[i] = simpson_integration(rad[i], rad[i + 1], trozos, func)
+
+posiciondelrayo = list(range(1, seminumray + 1))
+
+# Realizar el plot de la función
+plt.plot(posiciondelrayo, energiasderayos)
+
+# Configuraciones adicionales del plot
+plt.title('Energía de cada rayo', fontweight='bold', fontsize=12)
+plt.xlabel('Rayo nº', fontweight='bold', fontsize=10)
+plt.ylabel('E (MJ)', fontweight='bold', fontsize=10)
+plt.grid(True)
+
+# Ajusta la resolución (dpi) para mejorar la calidad al hacer zoom en la imagen descargada
+plt.savefig('Gráfica de energías.png', dpi=2000)
 
 plt.show()
