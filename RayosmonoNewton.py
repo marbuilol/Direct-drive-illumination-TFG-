@@ -16,15 +16,25 @@ def simpson_integration(a, b, particiones, f):
 
 # --------Cálculo de deltas para obtener rayos monoenergéticos-------#
 
-seminumray = 2000  # Número de rayos desde "a" a "b"
-liminf = 0  # Límite inferior de integración
-limsup = 2  # Límite superior de integración
+seminumray = 100  # Número de rayos desde "a" a "b"
+liminf = 0 # Límite inferior de integración
+limsup = 4.e-3  # Límite superior de integración
 sigma = 2
 valueexp = 2  # Valor del exponente
 Io = 1.e+5  # Valor de la intensidad cuando r = 0
 coef = Io * 2 * np.pi
 trozos = 1000  # Particiones en el método de Simpson
 err = 1.e-7  # Margen de error
+
+Rl = 10  # Radio del lente
+Rs = limsup  # Radio de la sección de estudio
+alfa = np.radians(8)  # Semiángulo del foco
+
+Fb = Rs / np.tan(alfa)  # Distancia de la sección de estudio al foco
+Fl = Rl / np.tan(alfa)  # Distancia del lente al foco
+H = Fl - Fb  # Distancia entre lente y la sección de estudio
+numray = seminumray * 2  # Cantidad total de "r"
+
 func = lambda r: coef * r * (np.exp(-((r / sigma) ** valueexp)))  # Función a integrar
 
 totalenergy = simpson_integration(liminf, limsup, trozos, func)  # Energía de la sección de estudio
@@ -54,16 +64,6 @@ print("Los radios desde 'a' hasta 'b' son: ", rad)
 print("La diferencia de energía entre cada intervalo de radios son: ", func_g)
 
 # --------------------- Posicionamiento de los rayos ---------------------------#
-Rl = 10  # Radio del lente
-Rs = limsup  # Radio de la sección de estudio
-alfa = np.radians(8)  # Semiángulo del foco
-
-Fb = Rs / np.tan(alfa)  # Distancia de la sección de estudio al foco
-Fl = Rl / np.tan(alfa)  # Distancia del lente al foco
-H = Fl - Fb  # Distancia entre lente y la sección de estudio
-
-numray = seminumray * 2  # Cantidad total de "r"
-
 hrays = np.zeros(numray)  # Distancias entre cada r_j
 posicionvect = np.zeros(numray)  # Posición vertical de cada rayo
 j = 1
@@ -88,14 +88,14 @@ for i in range(0, numray):
     matrixR[i, 3] = posicionvect[i]
 
 # Se guarda fichero txt de los vectores
-np.savetxt('Matriz_Rayos_Mono_Energéticos.txt', matrixR, header='X (u)\t\tY (u)\t\tKx (u)\t\tKy (u)'
+np.savetxt('Matrixrays.txt', matrixR, header='X (u)\t\tY (u)\t\tKx (u)\t\tKy (u)'
            , delimiter='\t', fmt='%f', comments='')
 
 # --------------------- Gráfica de los vectores -------------------------------#
 fig, ax = plt.subplots()
 for i in range(numray):
     ax.quiver(matrixR[i, 0], matrixR[i, 1], matrixR[i, 2], matrixR[i, 3], angles='xy', scale_units='xy', scale=1,
-              color='r', width=0.0001)
+              color='r', width=0.001)
 
 # Configurar límites del gráfico y estilos de líneas
 ax.set_xlim([H - Fb / 10, Fl + Fb / 10])  # Límites del eje X (distancia del lente al foco)
