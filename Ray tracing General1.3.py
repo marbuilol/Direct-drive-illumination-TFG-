@@ -163,16 +163,6 @@ def init_rays_laser(NR, L, Rss, k0, cx, cy, cz, angle_degrees_list):
 
     return rays
 
-# Función de densidad analítica
-def ndens(x, y, z, L, radioblanco, center):
-    r = np.sqrt((x - center[0]) ** 2 + (y - center[1]) ** 2)
-    ndens = min(1, np.exp(- 20 * (r - (radioblanco / 2)) / L))
-    gxn = (- 20 * ndens / L) * ((x - center[0]) / r)
-    gyn = (- 20 * ndens / L) * ((y - center[1]) / r)
-    gzn = 0
-
-    return ndens, gxn, gyn, gzn
-
 # Función de densidad interpolada a partir de un mallado de densidades electrónicas
 
 def ninterpolada(x, y, z, malla_dens, dif_x):
